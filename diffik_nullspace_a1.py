@@ -29,10 +29,6 @@ Kn = np.asarray([10.0]*18)
 # Maximum allowable joint velocity in rad/s.
 max_angvel = 0.785
 
-def orientation_error(desired, current):
-    cc = quat_conjugate(current)
-    q_r = quat_mul(desired, cc)
-    return q_r[:, 0:3] * torch.sign(q_r[:, 3]).unsqueeze(-1)
 
 def main() -> None:
     assert mujoco.__version__ >= "3.1.0", "Please upgrade to mujoco 3.1.0 or later."
@@ -133,17 +129,14 @@ def main() -> None:
             # Jacobian.
             mujoco.mj_jacSite(model, data, jac[:3], jac[3:], site_id)
 
-            # import ipdb;ipdb.set_trace()
             # Damped least squares.
             dq = jac.T @ np.linalg.solve(jac @ jac.T + diag, twist)
 
             # Nullspace control biasing joint velocities towards the home configuration.
-            # import ipdb;ipdb.set_trace
             nullspace_q_error[:3] = q0[:3] - data.qpos[:3]
-            nullspace_q_error[3:6] = error_quat[1:] * np.sign(error_quat[0])
-            # nullspace_q_error[6:] = q0[6:] - data.qpos[6:]
-            # dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (nullspace_q_error)) 
-            # dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (q0 - data.qpos[dof_ids]))  ## TODO: what should second term be? should it refer just to joints? how do you make sizes match?
+            nullspace_q_error[3:6] = error_quat[1:] * np.sign(error_quat[0])  # From https://gist.github.com/DanielTakeshi/84d6e83c5f7ea89b5f436f60d99fb610?permalink_comment_id=4383948
+            nullspace_q_error[6:] = q0[7:] - data.qpos[7:]
+            dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (nullspace_q_error)) 
 
             # Clamp maximum joint velocity.
             dq_abs_max = np.abs(dq).max()
@@ -153,8 +146,7 @@ def main() -> None:
             # Integrate joint velocities to obtain joint positions.
             q = data.qpos.copy()  # Note the copy here is important.
             mujoco.mj_integratePos(model, q, dq, integration_dt)
-            # np.clip(q, *model.jnt_range.T, out=q)
-            np.clip(q[7:], *model.jnt_range[1:,:].T, out=q[7:])
+            np.clip(q[7:], *model.jnt_range[1:,:].T, out=q[7:])  # Note: clipping only joint pos.
 
             # Set the control signal and step the simulation.
             data.ctrl[actuator_ids] = q[dof_ids]
