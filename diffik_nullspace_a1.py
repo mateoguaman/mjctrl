@@ -29,6 +29,10 @@ Kn = np.asarray([10.0]*18)
 # Maximum allowable joint velocity in rad/s.
 max_angvel = 0.785
 
+def orientation_error(desired, current):
+    cc = quat_conjugate(current)
+    q_r = quat_mul(desired, cc)
+    return q_r[:, 0:3] * torch.sign(q_r[:, 3]).unsqueeze(-1)
 
 def main() -> None:
     assert mujoco.__version__ >= "3.1.0", "Please upgrade to mujoco 3.1.0 or later."
@@ -97,6 +101,8 @@ def main() -> None:
     site_quat_conj = np.zeros(4)
     error_quat = np.zeros(4)
 
+    nullspace_q_error = np.zeros(model.nv)
+
     with mujoco.viewer.launch_passive(
         model=model,
         data=data,
@@ -127,10 +133,16 @@ def main() -> None:
             # Jacobian.
             mujoco.mj_jacSite(model, data, jac[:3], jac[3:], site_id)
 
+            # import ipdb;ipdb.set_trace()
             # Damped least squares.
             dq = jac.T @ np.linalg.solve(jac @ jac.T + diag, twist)
 
             # Nullspace control biasing joint velocities towards the home configuration.
+            # import ipdb;ipdb.set_trace
+            nullspace_q_error[:3] = q0[:3] - data.qpos[:3]
+            nullspace_q_error[3:6] = error_quat[1:] * np.sign(error_quat[0])
+            # nullspace_q_error[6:] = q0[6:] - data.qpos[6:]
+            # dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (nullspace_q_error)) 
             # dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (q0 - data.qpos[dof_ids]))  ## TODO: what should second term be? should it refer just to joints? how do you make sizes match?
 
             # Clamp maximum joint velocity.
