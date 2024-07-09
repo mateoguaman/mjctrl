@@ -103,6 +103,7 @@
             <geom class="calf1"/>
             <geom class="calf2"/>
             <geom class="foot"/>
+            <site name="FR" pos="0 0 -0.2" type="sphere" size="0.023" group="5"/>
           </body>
         </body>
       </body>
@@ -129,6 +130,7 @@
             <geom class="calf1"/>
             <geom class="calf2"/>
             <geom class="foot"/>
+            <site name="FL" pos="0 0 -0.2" type="sphere" size="0.023" group="5"/>
           </body>
         </body>
       </body>
@@ -154,6 +156,7 @@
             <geom class="calf1"/>
             <geom class="calf2"/>
             <geom class="foot"/>
+            <site name="RR" pos="0 0 -0.2" type="sphere" size="0.023" group="5"/>
           </body>
         </body>
       </body>
@@ -179,6 +182,7 @@
             <geom class="calf1"/>
             <geom class="calf2"/>
             <geom class="foot"/>
+            <site name="RL" pos="0 0 -0.2" type="sphere" size="0.023" group="5"/>
           </body>
         </body>
       </body>

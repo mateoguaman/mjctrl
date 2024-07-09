@@ -23,7 +23,8 @@ gravity_compensation: bool = True
 dt: float = 0.002
 
 # Nullspace P gain.
-Kn = np.asarray([10.0, 10.0, 10.0, 10.0, 5.0, 5.0, 5.0])
+# Kn = np.asarray([10.0, 10.0, 10.0, 10.0, 5.0, 5.0, 5.0])
+Kn = np.asarray([10.0]*18)
 
 # Maximum allowable joint velocity in rad/s.
 max_angvel = 0.785
@@ -41,23 +42,42 @@ def main() -> None:
     model.opt.timestep = dt
 
     # End-effector site we wish to control.
-    site_name = "attachment_site"
+    site_name = "FR"
     site_id = model.site(site_name).id
-
+    
     # Get the dof and actuator ids for the joints we wish to control. These are copied
     # from the XML file. Feel free to comment out some joints to see the effect on
     # the controller.
     joint_names = [
-        "joint1",
-        "joint2",
-        "joint3",
-        "joint4",
-        "joint5",
-        "joint6",
-        "joint7",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+    ]
+    actuator_names = [
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
     ]
     dof_ids = np.array([model.joint(name).id for name in joint_names])
-    actuator_ids = np.array([model.actuator(name).id for name in joint_names])
+    actuator_ids = np.array([model.actuator(name).id for name in actuator_names])
 
     # Initial joint configuration saved as a keyframe in the XML file.
     key_name = "home"
@@ -83,6 +103,7 @@ def main() -> None:
         show_left_ui=False,
         show_right_ui=False,
     ) as viewer:
+        import ipdb;ipdb.set_trace()
         # Reset the simulation.
         mujoco.mj_resetDataKeyframe(model, data, key_id)
 
@@ -111,7 +132,7 @@ def main() -> None:
             dq = jac.T @ np.linalg.solve(jac @ jac.T + diag, twist)
 
             # Nullspace control biasing joint velocities towards the home configuration.
-            dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (q0 - data.qpos[dof_ids]))
+            dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (q0 - data.qpos[dof_ids]))  ## TODO: what should second term be? should it refer just to joints? if so, how do you make sizes match.
 
             # Clamp maximum joint velocity.
             dq_abs_max = np.abs(dq).max()
