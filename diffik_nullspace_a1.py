@@ -103,7 +103,6 @@ def main() -> None:
         show_left_ui=False,
         show_right_ui=False,
     ) as viewer:
-        import ipdb;ipdb.set_trace()
         # Reset the simulation.
         mujoco.mj_resetDataKeyframe(model, data, key_id)
 
@@ -132,7 +131,7 @@ def main() -> None:
             dq = jac.T @ np.linalg.solve(jac @ jac.T + diag, twist)
 
             # Nullspace control biasing joint velocities towards the home configuration.
-            dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (q0 - data.qpos[dof_ids]))  ## TODO: what should second term be? should it refer just to joints? if so, how do you make sizes match.
+            # dq += (eye - np.linalg.pinv(jac) @ jac) @ (Kn * (q0 - data.qpos[dof_ids]))  ## TODO: what should second term be? should it refer just to joints? how do you make sizes match?
 
             # Clamp maximum joint velocity.
             dq_abs_max = np.abs(dq).max()
@@ -142,7 +141,8 @@ def main() -> None:
             # Integrate joint velocities to obtain joint positions.
             q = data.qpos.copy()  # Note the copy here is important.
             mujoco.mj_integratePos(model, q, dq, integration_dt)
-            np.clip(q, *model.jnt_range.T, out=q)
+            # np.clip(q, *model.jnt_range.T, out=q)
+            np.clip(q[7:], *model.jnt_range[1:,:].T, out=q[7:])
 
             # Set the control signal and step the simulation.
             data.ctrl[actuator_ids] = q[dof_ids]
